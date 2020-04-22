@@ -19,6 +19,7 @@ import scipy.misc
 import PIL.Image as Image
 import skimage.color
 import skimage.io
+import skimage.transform
 import urllib.request
 import shutil
 
@@ -421,8 +422,9 @@ def resize_image(image, min_dim=None, max_dim=None, padding=False):
     if scale != 1:
         #image = scipy.misc.imresize(
             #image, (round(h * scale), round(w * scale)))
-        image=np.array(Image.fromarray(image).resize(
-            (round(w*scale),round(h*scale)),resample=Image.BILINEAR))
+        image = skimage.transform.resize(
+            image, (round(h * scale), round(w * scale)),
+            order=1, mode="constant", preserve_range=True)
     # Need padding?
     if padding:
         # Get new height and width
@@ -466,8 +468,7 @@ def minimize_mask(bbox, mask, mini_shape):
         if m.size == 0:
             raise Exception("Invalid bounding box with area of zero")
         #m = scipy.misc.imresize(m.astype(float), mini_shape, interp='bilinear')
-        mini_shape_PIL=(mini_shape[1],mini_shape[0])  
-        m=np.array(Image.fromarray(m.astype(float)).resize(mini_shape_PIL,resample=Image.BILINEAR))
+        m = skimage.transform.resize(m.astype(float), mini_shape, order=1, mode="constant")
         mini_mask[:, :, i] = np.where(m >= 128, 1, 0)
     return mini_mask
 
@@ -485,7 +486,7 @@ def expand_mask(bbox, mini_mask, image_shape):
         h = y2 - y1
         w = x2 - x1
         #m = scipy.misc.imresize(m.astype(float), (h, w), interp='bilinear')
-        m=np.array(Image.fromarray(m.astype(float)).resize(w,h),resample=Image.BILINEAR)
+        m = skimage.transform.resize(m.astype(float), (h, w), order=1, mode="constant")
         mask[y1:y2, x1:x2, i] = np.where(m >= 128, 1, 0)
     return mask
 
@@ -507,8 +508,7 @@ def unmold_mask(mask, bbox, image_shape):
     y1, x1, y2, x2 = bbox
     #mask = scipy.misc.imresize(
         #mask, (y2 - y1, x2 - x1), interp='bilinear').astype(np.float32) / 255.0
-    mask=np.array(Image.fromarray(mask).resize(
-        (x2-x1,y2-y1),resample=Image.BILINEAR)).astype(np.float32)/255.0
+    mask = skimage.transform.resize(mask, (y2 - y1, x2 - x1), order=1, mode="constant")
     mask = np.where(mask >= threshold, 1, 0).astype(np.uint8)
 
     # Put the mask in the right location.
